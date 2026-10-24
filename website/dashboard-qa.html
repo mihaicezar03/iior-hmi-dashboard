@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quality Control Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page" data-role="qa">
+
+<!-- ACCESS CONTROL -->
+<script>
+  const allowedRole = document.body.getAttribute("data-role");
+  const userRole = localStorage.getItem("role");
+  if (userRole !== allowedRole) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <a href="home.html">
+        <img src="images/logo-becks-decker.png" alt="Becks & Decker">
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard-operator.html" class="sidebar-link">Operator</a>
+      <a href="dashboard-process.html" class="sidebar-link">Process Engineer</a>
+      <a href="dashboard-qa.html" class="sidebar-link active">Quality Control Engineer</a>
+      <a href="dashboard-maintenance.html" class="sidebar-link">Maintenance Engineer</a>
+      <a href="dashboard-manager.html" class="sidebar-link">Manager</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dashboard-main">
+
+    <!-- TOP BAR -->
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
+        <span class="clock-icon">⏰</span>
+        <span class="clock-time">14:53</span>
+      </div>
+      <div class="topbar-right user-info">
+  <span class="user-role" id="userRoleLabel">Operator</span>
+  <img id="userRoleIcon" class="user-role-icon" src="" alt="User role icon">
+</div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="dashboard-content">
+      <h1 class="dashboard-title">Quality Control Engineer</h1>
+
+      <div class="dashboard-grid">
+
+        <!-- Inspections -->
+        <section class="card">
+          <h2 class="card-title">Inspections Performed</h2>
+          <p>Date: <span id="inspect-date">__/__/2025</span></p>
+          <p>Inspections: <span id="inspect-count">4</span></p>
+          <p>Pass/Fail rate: <span id="pass-rate">--</span>%</p>
+        </section>
+
+        <!-- Defects -->
+        <section class="card">
+          <h2 class="card-title">Types of Defects</h2>
+          <p>Missing piece: <span id="def-missing">--</span></p>
+          <p>Misoriented: <span id="def-misoriented">--</span></p>
+          <p>Damaged box: <span id="def-damaged">--</span></p>
+        </section>
+
+        <!-- Traceability -->
+        <section class="card">
+          <h2 class="card-title">Traceability</h2>
+          <p>Batch number: <span id="trace-batch">--</span></p>
+          <p>Pallet number: <span id="trace-pallet">--</span></p>
+          <p>Customer order: <span id="trace-order">--</span></p>
+        </section>
+
+        <!-- Sampling plan -->
+        <section class="card card-wide">
+          <h2 class="card-title">Sampling Plan Status</h2>
+          <p>Next inspection in: <span id="next-inspection">--</span> batches</p>
+          <p>Current AQL level: <span id="aql-level">--</span></p>
+        </section>
+
+      </div>
+
+      <!-- STATUS BAR -->
+      <section class="status-bar">
+        <div class="status-item">
+          <h3>Working/Stopped</h3>
+          <p id="status-text">Working</p>
+        </div>
+        <div class="status-item">
+          <h3>Start Time</h3>
+          <p id="start-time">08:05</p>
+        </div>
+        <div class="status-item">
+          <h3>Warnings</h3>
+          <p id="warnings-text">None</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // CLOCK
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.querySelectorAll('.clock-time').forEach(el => {
+      el.textContent = `${hh}:${mm}:${ss}`;
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // HELPERS
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function generateQADemoData() {
+    // Inspections
+    const inspections = randInt(3, 12);
+    const pass = randInt(Math.floor(inspections * 0.7), inspections);
+    const passRate = Math.round((pass / inspections) * 100);
+
+    document.getElementById('inspect-count').textContent = inspections;
+    document.getElementById('pass-rate').textContent = passRate;
+
+    const today = new Date();
+    document.getElementById('inspect-date').textContent =
+      `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth()+1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    // Defects
+    const missing = inspections - pass > 0 ? randInt(0, inspections - pass) : 0;
+    const misoriented = randInt(0, inspections - pass - missing >= 0 ? inspections - pass - missing : 0);
+    const damaged = Math.max(0, inspections - pass - missing - misoriented);
+
+    document.getElementById('def-missing').textContent = missing;
+    document.getElementById('def-misoriented').textContent = misoriented;
+    document.getElementById('def-damaged').textContent = damaged;
+
+    // Traceability
+    document.getElementById('trace-batch').textContent = "B" + randInt(100, 999);
+    document.getElementById('trace-pallet').textContent = "P" + randInt(1, 40);
+    document.getElementById('trace-order').textContent = "ORD-" + randInt(1000, 9999);
+
+    // Sampling plan
+    document.getElementById('next-inspection').textContent = randInt(1, 10);
+    document.getElementById('aql-level').textContent = pickRandom(["1.0", "1.5", "2.5", "4.0"]);
+
+    // Status / warnings / start time
+    const statusEl = document.getElementById('status-text');
+    const warningsEl = document.getElementById('warnings-text');
+    const startEl = document.getElementById('start-time');
+
+    const isWorking = Math.random() < 0.8;
+    statusEl.textContent = isWorking ? "Working" : "Stopped";
+
+    warningsEl.textContent = isWorking
+      ? pickRandom(["None", "Keep monitoring defect trend", "Sampling at tightened level"])
+      : pickRandom(["High defect rate detected", "Inspection backlog", "Hold shipment for review"]);
+
+    const start = new Date();
+    start.setHours(start.getHours() - randInt(1, 6));
+    const hh = String(start.getHours()).padStart(2, '0');
+    const mm = String(start.getMinutes()).padStart(2, '0');
+    startEl.textContent = `${hh}:${mm}`;
+  }
+
+  document.addEventListener('DOMContentLoaded', generateQADemoData);
+ (function () {
+    const role = localStorage.getItem("role");
+
+    const roleMap = {
+      operator: {
+        label: "Operator",
+        icon: "images/operator icon.png"
+      },
+      process: {
+        label: "Process Engineer",
+        icon: "images/process icon.jpg"
+      },
+      qa: {
+        label: "Quality Control Engineer",
+        icon: "images/qa icon.png"
+      },
+      maintenance: {
+        label: "Maintenance Engineer",
+        icon: "images/maintenance icon.jpg"
+      },
+      manager: {
+        label: "Manager",
+        icon: "images/manager icon.jpg"
+      }
+    };
+
+    const labelEl = document.getElementById("userRoleLabel");
+    const iconEl  = document.getElementById("userRoleIcon");
+
+    if (!role || !roleMap[role]) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    labelEl.textContent = roleMap[role].label;
+    iconEl.src = roleMap[role].icon;
+    iconEl.alt = roleMap[role].label;
+  })();
+</script>
+</body>
+</html>

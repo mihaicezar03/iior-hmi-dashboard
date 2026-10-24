@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login – Becks & Decker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .login-box {
+      background: white;
+      padding: 2rem 2.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 350px;
+      text-align: center;
+    }
+
+    .login-box h2 {
+      margin-bottom: 1.2rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.7rem;
+      margin: 0.5rem 0 1rem;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: none;
+      background: #333;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background: #000;
+    }
+
+    .error {
+      color: red;
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    .logo {
+      width: 120px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-box">
+    <img src="images/logo-becks-decker.png" class="logo" alt="logo">
+    <h2>Employee Login</h2>
+
+    <input type="text" id="username" placeholder="Username (e.g. manager)">
+    <input type="password" id="password" placeholder="Password (1234)">
+    
+    <button onclick="login()">Log In</button>
+
+    <div class="error" id="error">Invalid username or password.</div>
+  </div>
+
+<script>
+  function login() {
+    const user = document.getElementById("username").value.toLowerCase();
+    const pass = document.getElementById("password").value;
+
+    // VALID USERS
+    const validUsers = {
+      "manager": "dashboard-manager.html",
+      "operator": "dashboard-operator.html",
+      "process": "dashboard-process.html",
+      "qa": "dashboard-qa.html",
+      "maintenance": "dashboard-maintenance.html"
+    };
+
+    if (pass === "1234" && validUsers[user]) {
+
+      // Store the logged-in role
+      localStorage.setItem("role", user);
+
+      // Redirect to correct dashboard
+      window.location.href = validUsers[user];
+    } else {
+      document.getElementById("error").style.display = "block";
+    }
+  }
+</script>
+</body>
+</html>

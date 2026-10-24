@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Maintenance Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page" data-role="maintenance">
+
+<!-- ACCESS CONTROL -->
+<script>
+  const allowedRole = document.body.getAttribute("data-role");
+  const userRole = localStorage.getItem("role");
+  if (userRole !== allowedRole) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <a href="home.html">
+        <img src="images/logo-becks-decker.png" alt="Becks & Decker">
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard-operator.html" class="sidebar-link">Operator</a>
+      <a href="dashboard-process.html" class="sidebar-link">Process Engineer</a>
+      <a href="dashboard-qa.html" class="sidebar-link">Quality Control Engineer</a>
+      <a href="dashboard-maintenance.html" class="sidebar-link active">Maintenance Engineer</a>
+      <a href="dashboard-manager.html" class="sidebar-link">Manager</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dashboard-main">
+
+    <!-- TOP BAR -->
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
+        <span class="clock-icon">⏰</span>
+        <span class="clock-time">14:53</span>
+      </div>
+      <div class="topbar-right user-info">
+  <span class="user-role" id="userRoleLabel">Operator</span>
+  <img id="userRoleIcon" class="user-role-icon" src="" alt="User role icon">
+</div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="dashboard-content">
+      <h1 class="dashboard-title">Maintenance Engineer</h1>
+
+      <div class="dashboard-grid">
+
+        <!-- Cycle counters -->
+        <section class="card">
+          <h2 class="card-title">Cycle Counters</h2>
+          <p>Daily cycles: <span id="daily-cycles">742</span></p>
+          <p>Batch: <span id="batch-current">125</span>/<span id="batch-target">200</span></p>
+          <p>Avg cycle: <span id="avg-cycle">4.2</span>s</p>
+        </section>
+
+        <!-- Preventive maintenance -->
+        <section class="card">
+          <h2 class="card-title">Preventive Maintenance</h2>
+          <p>Next: <span id="next-maint">Lubrication</span></p>
+          <p>Last: <span id="last-maint-days">56</span> days ago</p>
+          <p>Due: <span id="due-date">14/12/2025</span></p>
+        </section>
+
+        <!-- Alarm history -->
+        <section class="card">
+          <h2 class="card-title">Alarm History</h2>
+          <ul id="alarm-list">
+            <li>Feeder jam</li>
+            <li>Low pressure</li>
+            <li>Sensor no read</li>
+            <li>Emergency stop</li>
+          </ul>
+        </section>
+
+        <!-- Spare parts -->
+        <section class="card card-wide">
+          <h2 class="card-title">Spare Parts</h2>
+          <p>Gripper pads: <span id="spare-gripper">12</span></p>
+          <p>Sensor O1D100: <span id="spare-sensor">2</span></p>
+          <p>Belt: <span id="spare-belt">1</span></p>
+          <p>Fuses: <span id="spare-fuses">25</span></p>
+        </section>
+
+        <!-- Diagnostics -->
+        <section class="card">
+          <h2 class="card-title">Diagnostics</h2>
+          <p>Health: <span id="diag-health">OK</span></p>
+          <p>Last reboot: <span id="diag-reboot">6h</span></p>
+          <p>Firmware: <span id="diag-fw">v1.52</span></p>
+        </section>
+
+        <!-- Manual controls -->
+        <section class="card">
+          <h2 class="card-title">Manual Controls</h2>
+          <p><button class="btn btn-outline" id="btn-jog">Access manual jog</button></p>
+          <p><button class="btn btn-outline" id="btn-calib">Calibration</button></p>
+          <p><button class="btn btn-outline" id="btn-tools">Tools</button></p>
+        </section>
+
+      </div>
+
+      <!-- STATUS BAR -->
+      <section class="status-bar">
+        <div class="status-item">
+          <h3>Working/Stopped</h3>
+          <p id="status-text">Working</p>
+        </div>
+        <div class="status-item">
+          <h3>Start Time</h3>
+          <p id="start-time">08:05</p>
+        </div>
+        <div class="status-item">
+          <h3>Warnings</h3>
+          <p id="warnings-text">None</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // CLOCK
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.querySelectorAll('.clock-time').forEach(el => {
+      el.textContent = `${hh}:${mm}:${ss}`;
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // HELPERS
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function generateMaintenanceDemoData() {
+    // Cycle counters
+    document.getElementById('daily-cycles').textContent = randInt(400, 1500);
+    const current = randInt(50, 200);
+    const target = randInt(180, 250);
+    document.getElementById('batch-current').textContent = current;
+    document.getElementById('batch-target').textContent = target;
+    document.getElementById('avg-cycle').textContent = (Math.random() * 3 + 2).toFixed(1);
+
+    // Preventive maintenance
+    const tasks = ["Lubrication", "Belt tension check", "Sensor cleaning", "Filter replacement"];
+    document.getElementById('next-maint').textContent = pickRandom(tasks);
+    const lastDays = randInt(5, 90);
+    document.getElementById('last-maint-days').textContent = lastDays;
+    const dueIn = randInt(1, 20);
+    const now = new Date();
+    now.setDate(now.getDate() + dueIn);
+    document.getElementById('due-date').textContent =
+      `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth()+1).padStart(2, '0')}/${now.getFullYear()}`;
+
+    // Alarm history
+    const alarmOptions = [
+      "Feeder jam (cleared)",
+      "Low air pressure (cleared)",
+      "Sensor 4 no read",
+      "Emergency stop pressed",
+      "Overtemperature warning",
+      "Safety door opened"
+    ];
+    const list = document.getElementById('alarm-list');
+    list.innerHTML = "";
+    const nAlarms = randInt(2, 5);
+    for (let i = 0; i < nAlarms; i++) {
+      const li = document.createElement('li');
+      li.textContent = alarmOptions[i];
+      list.appendChild(li);
+    }
+
+    // Spare parts
+    document.getElementById('spare-gripper').textContent = randInt(5, 20);
+    document.getElementById('spare-sensor').textContent = randInt(0, 5);
+    document.getElementById('spare-belt').textContent = randInt(0, 3);
+    document.getElementById('spare-fuses').textContent = randInt(5, 40);
+
+    // Diagnostics
+    const healthStates = ["OK", "Warning", "Needs check"];
+    document.getElementById('diag-health').textContent = pickRandom(healthStates);
+    document.getElementById('diag-reboot').textContent = randInt(1, 48) + "h";
+    document.getElementById('diag-fw').textContent = "v1." + randInt(40, 60);
+
+    // Status / warnings / start time
+    const statusEl = document.getElementById('status-text');
+    const warningsEl = document.getElementById('warnings-text');
+    const startEl = document.getElementById('start-time');
+
+    const isWorking = Math.random() < 0.75;
+    statusEl.textContent = isWorking ? "Working" : "Stopped";
+
+    warningsEl.textContent = isWorking
+      ? pickRandom(["None", "Plan check on conveyor", "Monitor temperature"])
+      : pickRandom(["Alarm active – check panel", "Multiple stops detected", "Maintenance overdue"]);
+
+    const start = new Date();
+    start.setHours(start.getHours() - randInt(1, 6));
+    const hh = String(start.getHours()).padStart(2, '0');
+    const mm = String(start.getMinutes()).padStart(2, '0');
+    startEl.textContent = `${hh}:${mm}`;
+
+    // Buttons: just simple alerts for demo
+    document.getElementById('btn-jog').onclick = () => alert("Manual jog access requested.");
+    document.getElementById('btn-calib').onclick = () => alert("Calibration routine queued.");
+    document.getElementById('btn-tools').onclick = () => alert("Opening tools menu (demo).");
+  }
+
+  document.addEventListener('DOMContentLoaded', generateMaintenanceDemoData);
+ (function () {
+    const role = localStorage.getItem("role");
+
+    const roleMap = {
+      operator: {
+        label: "Operator",
+        icon: "images/operator icon.png"
+      },
+      process: {
+        label: "Process Engineer",
+        icon: "images/process icon.jpg"
+      },
+      qa: {
+        label: "Quality Control Engineer",
+        icon: "images/qa icon.png"
+      },
+      maintenance: {
+        label: "Maintenance Engineer",
+        icon: "images/maintenance icon.jpg"
+      },
+      manager: {
+        label: "Manager",
+        icon: "images/manager icon.jpg"
+      }
+    };
+
+    const labelEl = document.getElementById("userRoleLabel");
+    const iconEl  = document.getElementById("userRoleIcon");
+
+    if (!role || !roleMap[role]) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    labelEl.textContent = roleMap[role].label;
+    iconEl.src = roleMap[role].icon;
+    iconEl.alt = roleMap[role].label;
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Process Engineer Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page" data-role="process">
+
+<!-- ACCESS CONTROL: only 'process' role allowed -->
+<script>
+  const allowedRole = document.body.getAttribute("data-role");
+  const userRole = localStorage.getItem("role");
+  if (userRole !== allowedRole) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <a href="home.html">
+        <img src="images/logo-becks-decker.png" alt="Becks & Decker">
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard-operator.html" class="sidebar-link">Operator</a>
+      <a href="dashboard-process.html" class="sidebar-link active">Process Engineer</a>
+      <a href="dashboard-qa.html" class="sidebar-link">Quality Control Engineer</a>
+      <a href="dashboard-maintenance.html" class="sidebar-link">Maintenance Engineer</a>
+      <a href="dashboard-manager.html" class="sidebar-link">Manager</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="dashboard-main">
+
+    <!-- TOP BAR -->
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
+        <span class="clock-icon">⏰</span>
+        <span class="clock-time">14:53</span>
+      </div>
+      <div class="topbar-right user-info">
+  <span class="user-role" id="userRoleLabel">Operator</span>
+  <img id="userRoleIcon" class="user-role-icon" src="" alt="User role icon">
+</div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="dashboard-content">
+
+      <h1 class="dashboard-title">Process Engineer</h1>
+
+      <div class="dashboard-grid">
+
+        <!-- THROUGHPUT CHART -->
+        <section class="card card-wide">
+          <h2 class="card-title">Throughput Chart</h2>
+          <canvas id="throughputChart"></canvas>
+        </section>
+
+        <!-- SETUP HISTORY -->
+        <section class="card card-tall">
+          <h2 class="card-title">Setup History</h2>
+          <ul id="setup-history-list">
+            <li>11 Nov 2025 – Conveyor speed reduced</li>
+            <li>10 Nov 2025 – Robot 2 pick delay adjusted</li>
+            <li>10 Nov 2025 – Added pallet sensor</li>
+            <li>09 Nov 2025 – Buffer size updated</li>
+          </ul>
+        </section>
+
+        <!-- BOTTLENECK IDENTIFICATION -->
+        <section class="card card-tall">
+          <h2 class="card-title">Bottleneck Identification</h2>
+          <p>Station: <span id="bottle-station">Conveyor</span></p>
+          <p>Avg cycle: <span id="bottle-avg">42.6</span>s</p>
+          <p>Target: <span id="bottle-target">35</span>s</p>
+          <p>Utilization: <span id="bottle-util">97</span>%</p>
+          <p>Cause: <span id="bottle-cause">speed fluctuation</span></p>
+        </section>
+
+        <!-- TIME METRICS -->
+        <section class="card card-wide">
+          <h2 class="card-title">Time Metrics</h2>
+          <p>Takt time: <span id="takt-time">127</span>s</p>
+          <p>Actual time: <span id="actual-time">158</span>s</p>
+          <p>Delta: <span id="delta-time">-31</span>s</p>
+        </section>
+
+      </div>
+
+      <!-- STATUS BAR -->
+      <section class="status-bar">
+        <div class="status-item">
+          <h3>Working/Stopped</h3>
+          <p id="status-text">Working</p>
+        </div>
+        <div class="status-item">
+          <h3>Start Time</h3>
+          <p id="start-time">08:05</p>
+        </div>
+        <div class="status-item">
+          <h3>Warnings</h3>
+          <p id="warnings-text">None</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+</div>
+
+<!-- CLOCK + RANDOM DATA + RESPONSIVE CHART -->
+<script>
+  // === CLOCK ===
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+
+    document.querySelectorAll('.clock-time').forEach(el => {
+      el.textContent = `${hh}:${mm}:${ss}`;
+    });
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // === HELPERS ===
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // === DRAW RESPONSIVE LINE CHART ===
+  function drawThroughputChart(dataBoxes, dataPieces, targetValue) {
+    const canvas = document.getElementById('throughputChart');
+    if (!canvas) return;
+
+    // Match canvas size to its CSS size
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+
+    // Styles
+    ctx.font = "12px Arial";
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+
+    // Axes
+    ctx.beginPath();
+    ctx.moveTo(40, 20);
+    ctx.lineTo(40, h - 25);
+    ctx.lineTo(w - 10, h - 25);
+    ctx.stroke();
+
+    const maxVal = Math.max(...dataBoxes, ...dataPieces, targetValue) * 1.2;
+    const xStep = (w - 60) / (dataBoxes.length - 1 || 1);
+
+    function plotLine(values, color) {
+      ctx.beginPath();
+      values.forEach((v, i) => {
+        const x = 40 + i * xStep;
+        const y = h - 25 - (v / maxVal) * (h - 50);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Target dashed line
+    const targetY = h - 25 - (targetValue / maxVal) * (h - 50);
+    ctx.strokeStyle = "#999";
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(40, targetY);
+    ctx.lineTo(w - 10, targetY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Data lines
+    plotLine(dataBoxes, "#e67e22"); // orange
+    plotLine(dataPieces, "#3498db"); // blue
+
+    // Legend
+    ctx.fillStyle = "#000";
+    ctx.fillText("Boxes/min", 50, 18);
+    ctx.fillText("Pieces/min", 150, 18);
+    ctx.fillText("Target", 260, 18);
+  }
+
+  // === RANDOM DEMO DATA FOR PROCESS ENGINEER ===
+  function generateProcessDemoData() {
+    // Throughput data (6 points)
+    const boxesData  = Array.from({ length: 6 }, () => randInt(5, 20));
+    const piecesData = boxesData.map(v => v * randInt(2, 4));
+    const target = randInt(12, 18);
+
+    drawThroughputChart(boxesData, piecesData, target);
+
+    // Setup history
+    const setupTemplates = [
+      "Conveyor speed reduced to __ m/s",
+      "Robot 2 pick delay adjusted to __ s",
+      "New pallet sensor added at station __",
+      "Buffer size updated to __ units",
+      "Inspection interval set to __ min"
+    ];
+
+    const historyList = document.getElementById('setup-history-list');
+    if (historyList) {
+      historyList.innerHTML = "";
+      const entries = randInt(3, 5);
+      for (let i = 0; i < entries; i++) {
+        const li = document.createElement('li');
+        const day = randInt(1, 28);
+        const month = pickRandom(["Nov", "Dec"]);
+        const text = pickRandom(setupTemplates).replace("__", randInt(1, 5));
+        li.textContent = `${day} ${month} 2025 – ${text}`;
+        historyList.appendChild(li);
+      }
+    }
+
+    // Bottleneck info
+    const stations = ["Conveyor", "Robot 1", "Robot 2", "Sorter", "Buffer"];
+    const causes = [
+      "speed fluctuation",
+      "sensor noise",
+      "accumulation delay",
+      "manual inspection time",
+      "start/stop frequency"
+    ];
+
+    const station = pickRandom(stations);
+    const targetCycle = randInt(30, 45);
+    const avgCycle = targetCycle + randInt(-5, 15);
+    const utilization = randInt(70, 99);
+
+    const stationEl = document.getElementById('bottle-station');
+    const avgEl     = document.getElementById('bottle-avg');
+    const targetEl  = document.getElementById('bottle-target');
+    const utilEl    = document.getElementById('bottle-util');
+    const causeEl   = document.getElementById('bottle-cause');
+
+    if (stationEl) stationEl.textContent = station;
+    if (avgEl)     avgEl.textContent     = avgCycle.toFixed(1);
+    if (targetEl)  targetEl.textContent  = targetCycle.toFixed(1);
+    if (utilEl)    utilEl.textContent    = utilization;
+    if (causeEl)   causeEl.textContent   = pickRandom(causes);
+
+    // Time metrics
+    const takt = randInt(90, 150);
+    const actual = takt + randInt(-20, 40);
+    const delta = actual - takt;
+
+    const taktEl   = document.getElementById('takt-time');
+    const actualEl = document.getElementById('actual-time');
+    const deltaEl  = document.getElementById('delta-time');
+
+    if (taktEl)   taktEl.textContent   = takt;
+    if (actualEl) actualEl.textContent = actual;
+    if (deltaEl)  deltaEl.textContent  = (delta > 0 ? "+" : "") + delta;
+
+    // Status & warnings
+    const statusEl   = document.getElementById('status-text');
+    const startEl    = document.getElementById('start-time');
+    const warningsEl = document.getElementById('warnings-text');
+
+    const isWorking = Math.random() < 0.8;
+
+    if (statusEl) statusEl.textContent = isWorking ? "Working" : "Stopped";
+
+    if (warningsEl) {
+      warningsEl.textContent = isWorking
+        ? pickRandom(["None", "Monitoring minor delay", "Verify buffer size"])
+        : pickRandom(["High downtime on conveyor", "Cycle time above target", "Check upstream station"]);
+    }
+
+    if (startEl) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - randInt(15, 180));
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      startEl.textContent = `${hh}:${mm}`;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    generateProcessDemoData();
+  });
+   (function () {
+    const role = localStorage.getItem("role");
+
+    const roleMap = {
+      operator: {
+        label: "Operator",
+        icon: "images/operator icon.png"
+      },
+      process: {
+        label: "Process Engineer",
+        icon: "images/process icon.jpg"
+      },
+      qa: {
+        label: "Quality Control Engineer",
+        icon: "images/qa icon.png"
+      },
+      maintenance: {
+        label: "Maintenance Engineer",
+        icon: "images/maintenance icon.jpg"
+      },
+      manager: {
+        label: "Manager",
+        icon: "images/manager icon.jpg"
+      }
+    };
+
+    const labelEl = document.getElementById("userRoleLabel");
+    const iconEl  = document.getElementById("userRoleIcon");
+
+    if (!role || !roleMap[role]) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    labelEl.textContent = roleMap[role].label;
+    iconEl.src = roleMap[role].icon;
+    iconEl.alt = roleMap[role].label;
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manager Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page" data-role="manager">
+
+<!-- ACCESS CONTROL -->
+<script>
+  const allowedRole = document.body.getAttribute("data-role");
+  const userRole = localStorage.getItem("role");
+  if (userRole !== allowedRole) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <a href="home.html">
+        <img src="images/logo-becks-decker.png" alt="Becks & Decker">
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard-operator.html" class="sidebar-link">Operator</a>
+      <a href="dashboard-process.html" class="sidebar-link">Process Engineer</a>
+      <a href="dashboard-qa.html" class="sidebar-link">Quality Control Engineer</a>
+      <a href="dashboard-maintenance.html" class="sidebar-link">Maintenance Engineer</a>
+      <a href="dashboard-manager.html" class="sidebar-link active">Manager</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="dashboard-main">
+
+    <!-- TOP BAR -->
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
+        <span class="clock-icon">⏰</span>
+        <span class="clock-time">14:53</span>
+      </div>
+      <div class="topbar-right user-info">
+  <span class="user-role" id="userRoleLabel">Operator</span>
+  <img id="userRoleIcon" class="user-role-icon" src="" alt="User role icon">
+</div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="dashboard-content">
+      <h1 class="dashboard-title">Manager</h1>
+
+      <div class="dashboard-grid">
+
+        <!-- Production totals -->
+        <section class="card card-wide">
+          <h2 class="card-title">Production Totals</h2>
+          <p>Boards: <span id="boards-day">124</span> / <span id="boards-week">685</span></p>
+          <p>Boxes: <span id="boxes-day">42</span> / <span id="boxes-week">210</span></p>
+          <p>Pallets: <span id="pallets-day">3</span> / <span id="pallets-week">18</span></p>
+        </section>
+
+        <!-- Shift comparison -->
+        <section class="card card-tall">
+          <h2 class="card-title">Shift Comparison</h2>
+          <p><strong>Best performing team today:</strong> <span id="best-team">Team A</span></p>
+          <p>Boards produced – Team A: <span id="teamA-boards">0</span></p>
+          <p>Boards produced – Team B: <span id="teamB-boards">0</span></p>
+          <p>Avg cycle time – Team A: <span id="teamA-cycle">0</span>s</p>
+          <p>Avg cycle time – Team B: <span id="teamB-cycle">0</span>s</p>
+          <p>Downtime – Team A: <span id="teamA-dt">0</span> min</p>
+          <p>Downtime – Team B: <span id="teamB-dt">0</span> min</p>
+        </section>
+
+        <!-- Energy -->
+        <section class="card">
+          <h2 class="card-title">Energy Consumption</h2>
+          <p><span id="energy-consumption">1500</span> kW</p>
+        </section>
+
+        <!-- Order progress -->
+        <section class="card">
+          <h2 class="card-title">Order Progress</h2>
+          <p><span id="order-progress">60</span>%</p>
+        </section>
+
+        <!-- OEE -->
+        <section class="card">
+          <h2 class="card-title">OEE</h2>
+          <p><span id="oee-value">78</span>%</p>
+        </section>
+
+      </div>
+
+      <!-- STATUS BAR -->
+      <section class="status-bar">
+        <div class="status-item">
+          <h3>Working/Stopped</h3>
+          <p id="status-text">Working</p>
+        </div>
+        <div class="status-item">
+          <h3>Start Time</h3>
+          <p id="start-time">08:05</p>
+        </div>
+        <div class="status-item">
+          <h3>Warnings</h3>
+          <p id="warnings-text">None</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // CLOCK
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.querySelectorAll('.clock-time').forEach(el => {
+      el.textContent = `${hh}:${mm}:${ss}`;
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // HELPERS
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // RANDOM DEMO DATA
+  function generateManagerDemoData() {
+    // Production totals
+    const boardsDay = randInt(80, 180);
+    const boardsWeek = randInt(500, 900);
+    const boxesDay = randInt(30, 140);
+    const boxesWeek = randInt(200, 900);
+    const palletsDay = randInt(1, 10);
+    const palletsWeek = randInt(10, 60);
+
+    document.getElementById('boards-day').textContent = boardsDay;
+    document.getElementById('boards-week').textContent = boardsWeek;
+    document.getElementById('boxes-day').textContent = boxesDay;
+    document.getElementById('boxes-week').textContent = boxesWeek;
+    document.getElementById('pallets-day').textContent = palletsDay;
+    document.getElementById('pallets-week').textContent = palletsWeek;
+
+    // Shift comparison
+    const teamABoards = randInt(200, 450);
+    const teamBBoards = randInt(200, 450);
+    const teamACycle = randInt(32, 42);
+    const teamBCycle = randInt(32, 42);
+    const teamADT = randInt(10, 40);
+    const teamBDT = randInt(10, 40);
+
+    document.getElementById('teamA-boards').textContent = teamABoards;
+    document.getElementById('teamB-boards').textContent = teamBBoards;
+    document.getElementById('teamA-cycle').textContent = teamACycle;
+    document.getElementById('teamB-cycle').textContent = teamBCycle;
+    document.getElementById('teamA-dt').textContent = teamADT;
+    document.getElementById('teamB-dt').textContent = teamBDT;
+
+    const best = (teamABoards - teamADT) >= (teamBBoards - teamBDT) ? "Team A" : "Team B";
+    document.getElementById('best-team').textContent = best;
+
+    // Energy, order progress, OEE
+    document.getElementById('energy-consumption').textContent = randInt(1200, 2200);
+    document.getElementById('order-progress').textContent = randInt(20, 100);
+    document.getElementById('oee-value').textContent = randInt(60, 95);
+
+    // Status / warnings / start time
+    const statusEl = document.getElementById('status-text');
+    const warningsEl = document.getElementById('warnings-text');
+    const startEl = document.getElementById('start-time');
+
+    const isWorking = Math.random() < 0.85;
+    statusEl.textContent = isWorking ? "Working" : "Stopped";
+
+    warningsEl.textContent = isWorking
+      ? pickRandom(["None", "Monitor minor downtime", "Check OEE trend"])
+      : pickRandom(["High downtime on Team B", "Energy usage above target", "Backlog increasing"]);
+
+    const now = new Date();
+    now.setHours(now.getHours() - randInt(1, 5));
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    startEl.textContent = `${hh}:${mm}`;
+  }
+
+  document.addEventListener('DOMContentLoaded', generateManagerDemoData);
+ (function () {
+    const role = localStorage.getItem("role");
+
+    const roleMap = {
+      operator: {
+        label: "Operator",
+        icon: "images/operator icon.png"
+      },
+      process: {
+        label: "Process Engineer",
+        icon: "images/process icon.jpg"
+      },
+      qa: {
+        label: "Quality Control Engineer",
+        icon: "images/qa icon.png"
+      },
+      maintenance: {
+        label: "Maintenance Engineer",
+        icon: "images/maintenance icon.jpg"
+      },
+      manager: {
+        label: "Manager",
+        icon: "images/manager icon.jpg"
+      }
+    };
+
+    const labelEl = document.getElementById("userRoleLabel");
+    const iconEl  = document.getElementById("userRoleIcon");
+
+    if (!role || !roleMap[role]) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    labelEl.textContent = roleMap[role].label;
+    iconEl.src = roleMap[role].icon;
+    iconEl.alt = roleMap[role].label;
+  })();
+</script>
+</body>
+</html>

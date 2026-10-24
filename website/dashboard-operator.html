@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Operator Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page" data-role="operator">
+
+  <script>
+    // Allowed role for this page
+    const allowedRole = document.body.getAttribute("data-role");
+    const userRole = localStorage.getItem("role");
+
+    if (userRole !== allowedRole) {
+      window.location.href = "login.html";
+    }
+  </script>
+
+  <div class="dashboard-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="home.html">
+          <img src="images/logo-becks-decker.png" alt="Becks & Decker">
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard-operator.html" class="sidebar-link active">Operator</a>
+        <a href="dashboard-process.html" class="sidebar-link">Process Engineer</a>
+        <a href="dashboard-qa.html" class="sidebar-link">Quality Control Engineer</a>
+        <a href="dashboard-maintenance.html" class="sidebar-link">Maintenance Engineer</a>
+        <a href="dashboard-manager.html" class="sidebar-link">Manager</a>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="dashboard-main">
+
+      <!-- TOP BAR -->
+      <header class="dashboard-topbar">
+        <div class="topbar-left">
+          <span class="clock" id="liveClock">00:00:00</span>
+        </div>
+
+        <!-- Plant Status pill (synced with Start/Stop/Reset + home.html via localStorage) -->
+        <div class="topbar-center">
+          <span class="status-pill plant-running" id="plantStatusHeader">Plant: Running</span>
+        </div>
+
+        <div class="topbar-right user-info">
+          <span class="user-role" id="userRoleLabel">Operator</span>
+          <img id="userRoleIcon" class="user-role-icon" src="" alt="User role icon">
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <main class="dashboard-content">
+
+        <h1 class="dashboard-title">Operator</h1>
+
+        <div class="dashboard-grid">
+
+          <!-- LEFT MENU -->
+          <section class="card card-tall">
+            <h2 class="card-title">Menu</h2>
+            <ul class="menu-list">
+              <li>Statistics</li>
+              <li>Issues</li>
+              <li>Logs</li>
+              <li>Settings</li>
+              <li>Help</li>
+            </ul>
+          </section>
+
+          <!-- CENTER TABLE -->
+          <section class="card card-wide">
+            <h2 class="card-title">Production Table</h2>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nr. of Products</th>
+                  <th>Product Name</th>
+                  <th>Time Used</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td id="prod-count">—</td>
+                  <td id="prod-name">—</td>
+                  <td id="prod-time">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- RIGHT COUNTERS -->
+          <section class="card card-tall">
+            <h2 class="card-title">Counters</h2>
+            <p><strong>Nr. of boxes:</strong> <span id="boxes-count">—</span></p>
+            <p><strong>Nr. of pallets:</strong> <span id="pallets-count">—</span></p>
+            <p><strong>Total number:</strong> <span id="total-count">—</span></p>
+            <p><strong>Missing:</strong> <span id="missing-count">—</span></p>
+            <p><strong>Usage:</strong> <span id="usage-percent">—</span>%</p>
+          </section>
+
+          <!-- BUTTONS -->
+          <section class="card card-buttons">
+            <div class="button-row">
+              <button id="btn-start" class="btn btn-circle btn-green">Start</button>
+              <button id="btn-stop" class="btn btn-circle btn-red">Stop</button>
+              <button id="btn-reset" class="btn btn-circle">Reset</button>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- STATUS BAR -->
+        <section class="status-bar">
+          <div class="status-item">
+            <h3>Working/Stopped</h3>
+            <p id="status-text">Working</p>
+          </div>
+
+          <div class="status-item">
+            <h3>Start Time</h3>
+            <p id="start-time">08:05</p>
+          </div>
+
+          <div class="status-item">
+            <h3>Warnings</h3>
+            <p id="warnings-text">None</p>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // =============================
+    // CLOCK (fix: updates #liveClock)
+    // =============================
+    function updateClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      const clockEl = document.getElementById("liveClock");
+      if (clockEl) clockEl.textContent = `${hh}:${mm}:${ss}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+
+    // =============================
+    // PLANT STATUS PILL (synced)
+    // localStorage key: "plantStatus"
+    // states: running | idle | reset
+    // =============================
+    const plantHeaderEl = document.getElementById("plantStatusHeader");
+
+    function paintPlantPill(state) {
+      if (!plantHeaderEl) return;
+
+      // Reset classes
+      plantHeaderEl.className = "status-pill";
+
+      if (state === "running") {
+        plantHeaderEl.textContent = "Plant: Running";
+        plantHeaderEl.classList.add("plant-running");
+      } else if (state === "idle") {
+        plantHeaderEl.textContent = "Plant: Idle";
+        plantHeaderEl.classList.add("plant-idle");
+      } else if (state === "reset") {
+        plantHeaderEl.textContent = "Plant: Reset";
+        plantHeaderEl.classList.add("plant-reset");
+      } else {
+        // fallback
+        plantHeaderEl.textContent = "Plant: Running";
+        plantHeaderEl.classList.add("plant-running");
+      }
+    }
+
+    function setPlantStatus(state) {
+      localStorage.setItem("plantStatus", state);
+      paintPlantPill(state);
+    }
+
+    // On load, show saved status from home/operator buttons
+    paintPlantPill(localStorage.getItem("plantStatus") || "running");
+
+
+    // =============================
+    // RANDOM DEMO DATA FOR OPERATOR
+    // =============================
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateOperatorDemoData() {
+      // Production
+      const productNames = [
+        "Checkered board",
+        "Engraved panel",
+        "Polished plate",
+        "Custom jig",
+        "Fixture set"
+      ];
+
+      const prodCountEl = document.getElementById('prod-count');
+      const prodNameEl  = document.getElementById('prod-name');
+      const prodTimeEl  = document.getElementById('prod-time');
+
+      if (prodCountEl && prodNameEl && prodTimeEl) {
+        const count = randInt(5, 60);
+        prodCountEl.textContent = count;
+        prodNameEl.textContent  = pickRandom(productNames);
+        prodTimeEl.textContent  = `${randInt(0,1)}h ${randInt(5,59)}m`;
+      }
+
+      // Counters
+      const boxes   = randInt(10, 120);
+      const pallets = randInt(1, 12);
+      const missing = randInt(0, 5);
+      const total   = boxes + pallets * 10;
+      const usage   = randInt(70, 98);
+
+      const boxesEl   = document.getElementById('boxes-count');
+      const palletsEl = document.getElementById('pallets-count');
+      const totalEl   = document.getElementById('total-count');
+      const missingEl = document.getElementById('missing-count');
+      const usageEl   = document.getElementById('usage-percent');
+
+      if (boxesEl)   boxesEl.textContent   = boxes;
+      if (palletsEl) palletsEl.textContent = pallets;
+      if (totalEl)   totalEl.textContent   = total;
+      if (missingEl) missingEl.textContent = missing;
+      if (usageEl)   usageEl.textContent   = usage;
+
+      // Status + warnings
+      const statusEl   = document.getElementById('status-text');
+      const startEl    = document.getElementById('start-time');
+      const warningsEl = document.getElementById('warnings-text');
+
+      const possibleWarnings = [
+        "None",
+        "Low air pressure",
+        "Feeder jam – cleared",
+        "Sensor 4 no read",
+        "Check safety door"
+      ];
+
+      const isWorking = Math.random() < 0.8;
+
+      if (statusEl)   statusEl.textContent   = isWorking ? "Working" : "Stopped";
+      if (warningsEl) warningsEl.textContent = isWorking ? pickRandom(["None","Minor maintenance note"]) : pickRandom(possibleWarnings);
+
+      // Start time (earlier today)
+      if (startEl) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - randInt(30, 240));
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        startEl.textContent = `${hh}:${mm}`;
+      }
+    }
+
+
+    // =============================
+    // BUTTON BEHAVIOUR (updated to sync plantStatus)
+    // =============================
+    function setupOperatorButtons() {
+      const statusEl   = document.getElementById('status-text');
+      const warningsEl = document.getElementById('warnings-text');
+      const startEl    = document.getElementById('start-time');
+
+      const btnStart = document.getElementById('btn-start');
+      const btnStop  = document.getElementById('btn-stop');
+      const btnReset = document.getElementById('btn-reset');
+
+      if (btnStart) {
+        btnStart.addEventListener('click', () => {
+          if (statusEl)   statusEl.textContent = "Working";
+          if (warningsEl) warningsEl.textContent = "None";
+
+          // Start time to now
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          if (startEl) startEl.textContent = `${hh}:${mm}`;
+
+          // ✅ Sync plant status (and home.html)
+          setPlantStatus("running");
+        });
+      }
+
+      if (btnStop) {
+        btnStop.addEventListener('click', () => {
+          if (statusEl)   statusEl.textContent = "Stopped";
+          if (warningsEl) warningsEl.textContent = "Manual stop requested";
+
+          // ✅ Sync plant status (and home.html)
+          setPlantStatus("idle");
+        });
+      }
+
+      if (btnReset) {
+        btnReset.addEventListener('click', () => {
+          generateOperatorDemoData();
+
+          // ✅ Sync plant status (and home.html)
+          setPlantStatus("reset");
+        });
+      }
+    }
+
+
+    // =============================
+    // ROLE LABEL + ICON (your logic kept)
+    // =============================
+    (function () {
+      const role = localStorage.getItem("role");
+
+      const roleMap = {
+        operator: { label: "Operator", icon: "images/operator icon.png" },
+        process: { label: "Process Engineer", icon: "images/process icon.jpg" },
+        qa: { label: "Quality Control Engineer", icon: "images/qa icon.png" },
+        maintenance: { label: "Maintenance Engineer", icon: "images/maintenance icon.jpg" },
+        manager: { label: "Manager", icon: "images/manager icon.jpg" }
+      };
+
+      const labelEl = document.getElementById("userRoleLabel");
+      const iconEl  = document.getElementById("userRoleIcon");
+
+      if (!role || !roleMap[role]) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      labelEl.textContent = roleMap[role].label;
+      iconEl.src = roleMap[role].icon;
+      iconEl.alt = roleMap[role].label;
+    })();
+
+
+    // =============================
+    // INIT
+    // =============================
+    document.addEventListener('DOMContentLoaded', () => {
+      generateOperatorDemoData();
+      setupOperatorButtons();
+    });
+  </script>
+
+</body>
+</html>
