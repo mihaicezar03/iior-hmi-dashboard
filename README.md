@@ -59,6 +59,9 @@ iior-hmi-dashboard/
 ## Design process
 
 The project report documents stakeholder needs, functional and non-functional requirements, a requirements/performance relationship matrix, use-case definitions, interface wireframes, technology selection, and a usability evaluation. The design emphasizes making relevant information accessible to each operational role without overloading other users.
+<img width="1535" height="690" alt="image" src="https://github.com/user-attachments/assets/f2112069-7621-4309-b69d-867fb1adfa69" />
+<img width="510" height="473" alt="image" src="https://github.com/user-attachments/assets/97647ef7-29ec-417b-a4a0-3379a10c463e" />
+
 
 ## Limitations and future improvements
 
